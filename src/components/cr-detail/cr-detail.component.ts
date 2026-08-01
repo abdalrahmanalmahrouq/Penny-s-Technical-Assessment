@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CrApiService } from '../../api/cr-api.service';
@@ -19,7 +19,7 @@ import { formatMoney } from '../../common/money.util';
 	imports: [CommonModule, ReactiveFormsModule],
 	templateUrl: './cr-detail.component.html',
 })
-export class CrDetailComponent implements OnInit {
+export class CrDetailComponent implements OnChanges {
 	@Input() id!: string;
 
 	state: ViewState<CrDetail> = idle();
@@ -30,8 +30,8 @@ export class CrDetailComponent implements OnInit {
 
 	constructor(private readonly api: CrApiService, private readonly session: SessionService) {}
 
-	ngOnInit(): void {
-		void this.load();
+	ngOnChanges(changes: SimpleChanges): void {
+		if (changes['id']?.currentValue) void this.load();
 	}
 
 	async load(): Promise<void> {
