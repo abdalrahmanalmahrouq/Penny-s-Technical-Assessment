@@ -30,4 +30,37 @@ describe('CrListComponent', () => {
 		expect(fixture.nativeElement.querySelector('.cr-list__empty')).not.toBeNull();
 		expect(fixture.nativeElement.querySelector('.cr-list__table')).toBeNull();
 	});
+
+	it('filters the rendered rows by status', async () => {
+		const fixture = await render(users.approver);
+
+		fixture.componentInstance.onFilterChange('APPLIED');
+		fixture.detectChanges();
+
+		const rows = fixture.nativeElement.querySelectorAll('.cr-list__row');
+		expect(rows.length).toBe(1);
+		expect(rows[0].textContent).toContain('CR-2');
+	});
+
+	it('shows all rows when the status filter is ALL', async () => {
+		const fixture = await render(users.approver);
+
+		fixture.componentInstance.onFilterChange('APPLIED');
+		fixture.componentInstance.onFilterChange('ALL');
+		fixture.detectChanges();
+
+		expect(fixture.nativeElement.querySelectorAll('.cr-list__row').length).toBe(3);
+	});
+
+	it('shows a message when no rows match the selected status', async () => {
+		const fixture = await render(users.approver);
+
+		fixture.componentInstance.onFilterChange('REJECTED');
+		fixture.detectChanges();
+
+		expect(fixture.nativeElement.querySelectorAll('.cr-list__row').length).toBe(0);
+		expect(fixture.nativeElement.querySelector('.cr-list__filtered-empty').textContent).toContain(
+			'No change requests for this status.',
+		);
+	});
 });

@@ -18,6 +18,10 @@
 
 	<p *ngIf="state.status === 'empty'" class="cr-list__empty">No change requests to show.</p>
 
+	<p *ngIf="state.status === 'loaded' && visibleRows.length === 0" class="cr-list__filtered-empty">
+		No change requests for this status.
+	</p>
+
 	<table *ngIf="state.status === 'loaded'" class="cr-list__table">
 		<thead>
 			<tr>
