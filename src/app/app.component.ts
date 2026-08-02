@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CrListComponent } from '../components/cr-list/cr-list.component';
 import { CrDetailComponent } from '../components/cr-detail/cr-detail.component';
@@ -19,6 +19,8 @@ import { users } from '../api/fixtures';
 	templateUrl: './app.component.html',
 })
 export class AppComponent {
+	@ViewChild(CrListComponent) private crList?: CrListComponent;
+
 	readonly users = users;
 	readonly userKeys = Object.keys(users);
 	selectedId: string | null = 'CR-1';
@@ -33,6 +35,10 @@ export class AppComponent {
 
 	onSelect(id: string): void {
 		this.selectedId = id;
+	}
+
+	onActionCompleted(): void {
+		void this.crList?.load();
 	}
 
 	/** Destroy + recreate the panes so they re-load as the newly selected user. */

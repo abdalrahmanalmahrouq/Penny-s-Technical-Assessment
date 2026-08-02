@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CrDetailComponent } from './cr-detail.component';
 import { SessionService } from '../../session/session.service';
+import { CrApiService } from '../../api/cr-api.service';
 import { users } from '../../api/fixtures';
 import { ReqUser } from '../../models/cr.models';
 
@@ -13,8 +14,8 @@ async function render(user: ReqUser, id: string): Promise<ComponentFixture<CrDet
 	});
 	await TestBed.compileComponents();
 	const fixture = TestBed.createComponent(CrDetailComponent);
-	fixture.componentInstance.id = id;
-	fixture.detectChanges(); // ngOnInit -> load()
+	fixture.componentRef.setInput('id', id);
+	fixture.detectChanges(); // ngOnChanges -> load()
 	await flush(); // let the mock API resolve
 	fixture.detectChanges(); // render the loaded state
 	return fixture;
@@ -41,5 +42,60 @@ describe('CrDetailComponent', () => {
 		const fixture = await render(users.viewer, 'CR-1'); // viewer: cr_r_o only; CR-1 is PENDING_APPROVAL
 		const approveBtn: HTMLButtonElement = fixture.nativeElement.querySelector('.cr-actions__approve');
 		expect(approveBtn.disabled).toBe(true);
+	});
+
+	it('approves a pending change request', async () => {
+		const fixture = await render(users.approver, 'CR-1');
+
+		await fixture.componentInstance.approve();
+		fixture.detectChanges();
+
+		expect(fixture.componentInstance.detail?.status).toBe('APPROVED');
+		expect(fixture.nativeElement.querySelector('.cr-actions__approve').disabled).toBe(true);
+	});
+
+	it('requires a rejection reason', async () => {
+		const fixture = await render(users.approver, 'CR-1');
+
+		await fixture.componentInstance.reject();
+		fixture.detectChanges();
+
+		expect(fixture.componentInstance.detail?.status).toBe('PENDING_APPROVAL');
+		expect(fixture.nativeElement.querySelector('.cr-actions__reason-error')).not.toBeNull();
+	});
+
+	it('rejects a pending change request with a reason', async () => {
+		const fixture = await render(users.approver, 'CR-1');
+		fixture.componentInstance.rejectControl.setValue('The quantity is too high.');
+
+		await fixture.componentInstance.reject();
+		fixture.detectChanges();
+
+		expect(fixture.componentInstance.detail?.status).toBe('REJECTED');
+		expect(fixture.componentInstance.timeline.at(-1)?.note).toBe('The quantity is too high.');
+		expect(fixture.nativeElement.querySelector('.cr-actions__approve').disabled).toBe(true);
+	});
+
+	it('prevents duplicate approval while the API is slow', async () => {
+		const fixture = await render(users.approver, 'CR-1');
+		const api = TestBed.inject(CrApiService);
+		api.latencyMs = 100;
+		const approveSpy = jest.spyOn(api, 'approve');
+
+		const firstApproval = fixture.componentInstance.approve();
+		const secondApproval = fixture.componentInstance.approve();
+		fixture.detectChanges();
+
+		const approveButton: HTMLButtonElement = fixture.nativeElement.querySelector('.cr-actions__approve');
+		expect(fixture.componentInstance.submitting).toBe(true);
+		expect(approveButton.disabled).toBe(true);
+		expect(approveSpy).toHaveBeenCalledTimes(1);
+
+		await firstApproval;
+		await secondApproval;
+		fixture.detectChanges();
+
+		expect(fixture.componentInstance.submitting).toBe(false);
+		expect(fixture.componentInstance.detail?.status).toBe('APPROVED');
 	});
 });
